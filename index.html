@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>CogniWatch</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #0f1117;
+            color: white;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #4fc3f7;
+            margin-bottom: 5px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #888;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .live-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background: #66bb6a;
+            border-radius: 50%;
+            margin-right: 6px;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1
+            }
+
+            50% {
+                opacity: 0.3
+            }
+        }
+
+        .live-text {
+            font-size: 12px;
+            color: #66bb6a;
+            margin-bottom: 30px;
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: #1e2130;
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .card-label {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 8px;
+        }
+
+        .card-value {
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .patients {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .patient {
+            background: #1e2130;
+            border-radius: 10px;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        .info {
+            flex: 1;
+        }
+
+        .name {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .bar-wrap {
+            background: #2a2d3e;
+            border-radius: 5px;
+            height: 8px;
+            width: 100%;
+        }
+
+        .bar {
+            height: 8px;
+            border-radius: 5px;
+            transition: width 1s ease;
+        }
+
+        .badge {
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        .stats {
+            display: flex;
+            gap: 20px;
+            margin-top: 8px;
+        }
+
+        .stat {
+            font-size: 12px;
+            color: #888;
+        }
+
+        .stat span {
+            color: white;
+            font-weight: bold;
+        }
+
+        .alert-box {
+            background: #ef535022;
+            border: 1px solid #ef5350;
+            border-radius: 10px;
+            padding: 15px 20px;
+            margin-bottom: 30px;
+        }
+
+        .alert-title {
+            color: #ef5350;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .alert-desc {
+            color: #aaa;
+            font-size: 13px;
+        }
+
+        .last-update {
+            font-size: 11px;
+            color: #555;
+            margin-top: 20px;
+            text-align: right;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>CogniWatch</h1>
+    <p class="subtitle">AI-powered early cognitive decline monitoring</p>
+    <div class="live-text"><span class="live-dot"></span>Live monitoring — updates every 5 seconds</div>
+
+    <div id="alert-section"></div>
+
+    <div class="cards">
+        <div class="card">
+            <div class="card-label">Patients monitored</div>
+            <div class="card-value" id="total">-</div>
+        </div>
+        <div class="card">
+            <div class="card-label">High risk alerts</div>
+            <div class="card-value" style="color:#ef5350" id="high">-</div>
+        </div>
+        <div class="card">
+            <div class="card-label">Medium risk</div>
+            <div class="card-value" style="color:#ffa726" id="medium">-</div>
+        </div>
+        <div class="card">
+            <div class="card-label">Normal patients</div>
+            <div class="card-value" style="color:#66bb6a" id="normal">-</div>
+        </div>
+    </div>
+
+    <div class="patients" id="patients"></div>
+    <div class="last-update" id="last-update"></div>
+
+    <script>
+        function loadData() {
+            fetch('http://127.0.0.1:5000/patients')
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById('total').textContent = data.length;
+                    document.getElementById('high').textContent = data.filter(p => p.risk === 'HIGH RISK').length;
+                    document.getElementById('medium').textContent = data.filter(p => p.risk === 'MEDIUM').length;
+                    document.getElementById('normal').textContent = data.filter(p => p.risk === 'NORMAL').length;
+
+                    const alertSection = document.getElementById('alert-section');
+                    const highRisk = data.filter(p => p.risk === 'HIGH RISK');
+                    if (highRisk.length > 0) {
+                        alertSection.innerHTML = highRisk.map(p => `
+              <div class="alert-box">
+                <div class="alert-title">⚠️ High Risk Alert — ${p.name}</div>
+                <div class="alert-desc">Sleep: ${p.sleep} hrs | Steps: ${p.steps} | Wandering: ${p.wandering}x | Score: ${p.score}/100 — Immediate caregiver attention required!</div>
+              </div>`).join('');
+                    } else {
+                        alertSection.innerHTML = '';
+                    }
+
+                    const container = document.getElementById('patients');
+                    container.innerHTML = '';
+                    data.forEach(p => {
+                        const color = p.risk === 'HIGH RISK' ? '#ef5350' : p.risk === 'MEDIUM' ? '#ffa726' : '#66bb6a';
+                        const initials = p.name.split(' ').map(n => n[0]).join('');
+                        container.innerHTML += `
+              <div class="patient">
+                <div class="avatar" style="background:${color}22;color:${color}">${initials}</div>
+                <div class="info">
+                  <div class="name">${p.name}, ${p.age}</div>
+                  <div class="bar-wrap">
+                    <div class="bar" style="width:${p.score}%;background:${color}"></div>
+                  </div>
+                  <div class="stats">
+                    <div class="stat">Sleep: <span>${p.sleep} hrs</span></div>
+                    <div class="stat">Steps: <span>${p.steps}</span></div>
+                    <div class="stat">Wandering: <span>${p.wandering}x</span></div>
+                    <div class="stat">Score: <span>${p.score}/100</span></div>
+                  </div>
+                </div>
+                <div class="badge" style="background:${color}22;color:${color}">${p.risk}</div>
+              </div>`;
+                    });
+
+                    const now = new Date();
+                    document.getElementById('last-update').textContent = 'Last updated: ' + now.toLocaleTimeString();
+                });
+        }
+
+        loadData();
+        setInterval(loadData, 5000);
+    </script>
+
+</body>
+
+</html>
